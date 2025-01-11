@@ -1,4 +1,4 @@
-# tehlikeli yakinliklar python game
+# tehlikeli oyun python game
 + sag üst köşeden zip olarak indirin
 + zip dosyasını klasöre çıkardıktan sonra 
 + terminalde ya da cmd kullanarak py dosyasının olduğu klasörde
