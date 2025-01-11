@@ -9,7 +9,7 @@ HEIGHT = 600  # oyun penceresinin yuksekligi
 TILE_SIZE = 40  # karakterlerin boyutu (kare seklinde)
 PLAYER_SPEED = 3  # oyuncunun hareket hizi
 ENEMY_SPEED = 2  # dusmanlarin hareket hizi
-NUM_ENEMIES = 5  # dusman sayisi
+NUM_ENEMIES = 9  # dusman sayisi
 
 # dusman sayisini ve hiz ifadelerini 
 # ayarlamalı olarak baslangic ekraninda verebiliriz
