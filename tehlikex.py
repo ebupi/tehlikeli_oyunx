@@ -9,7 +9,7 @@ HEIGHT = 600  # oyun penceresinin yuksekligi
 TILE_SIZE = 40  # karakterlerin boyutu (kare seklinde)
 PLAYER_SPEED = 3  # oyuncunun hareket hizi
 ENEMY_SPEED = 2  # dusmanlarin hareket hizi
-NUM_ENEMIES = 5  # dusman sayisi
+NUM_ENEMIES = 2  # dusman sayisi
 
 # dusman sayisini ve hiz ifadelerini 
 # ayarlamalı olarak baslangic ekraninda verebiliriz
@@ -23,17 +23,14 @@ show_welcome = True  # hosgeldin ekranini gosterir
 game_over_time = 0  # Game Over oldugunda zamani kaydetmek icin tanimli
 score = 0  # oyuncunun skoru
 start_time = time.time()  # oyunun baslangic zamani
+music_on = True  # müzik açık mı? kontrol
 
 # Buton sinifi
 class Button:
     """
-    Buton sinifi, tiklanabilir butonlari temsil eder.
+    Buton sinifinin yapici metodu.
     """
-
     def __init__(self, x, y, width, height, text, color, hover_color):
-        """
-        Buton sinifinin yapici metodu.
-        """
         self.rect = Rect(x, y, width, height)  # Butonun dikdortgen alani
         self.text = text  # Buton metni
         self.color = color  # Buton rengi
@@ -44,13 +41,12 @@ class Button:
         """
         Butonu ekrana cizer.
         """
-        # buton rengini belirle (uzerine gelindiginde hover rengi kullan)
         color = self.hover_color if self.is_hovered else self.color
         screen.draw.filled_rect(self.rect, color)  # butonun arka planini ciz
         screen.draw.text(
             self.text,
             center=self.rect.center,  # metni butonun ortasina yerlestir
-            fontsize=40,
+            fontsize=30,  # Yazı boyutunu küçülttük
             color="white"
         )
 
@@ -72,17 +68,17 @@ class Button:
         """
         return self.rect.collidepoint(mouse_pos)  # fare butonun uzerinde ve tiklandi mi?
 
-# buton ornekleri
-start_button = Button(WIDTH // 2 - 100, HEIGHT // 2 - 50, 200, 100, "Basla", "blue", "lightblue")  # basla butonu
-restart_button = Button(WIDTH // 2 - 100, HEIGHT // 2 - 30, 200, 100, "Yeniden Başla", "green", "lightgreen") # yeniden basla butonu
-exit_button = Button(WIDTH // 2 - 100, HEIGHT // 2 + 80, 200, 100, "Çıkış", "red", "pink") # cikis butonu
+# Buton örnekleri RGB renkler kullanalım
+start_button = Button(WIDTH // 2 - 100, HEIGHT // 2 - 50, 200, 100, "Başla", (0, 0, 255), (173, 216, 230))  # Mavi ve açık mavi
+restart_button = Button(WIDTH // 2 - 100, HEIGHT // 2 - 30, 200, 100, "Yeniden Başla", (0, 255, 0), (144, 238, 144))  # Yeşil ve açık yeşil
+exit_button = Button(WIDTH // 2 - 100, HEIGHT // 2 + 80, 200, 100, "Çıkış", (255, 0, 0), (255, 192, 203))  # Kırmızı ve pembe
+sound_button = Button(20, HEIGHT - 70, 150, 50, "Ses: Açık", (128, 0, 128), (216, 191, 216))  # Sol alt köşede ses butonu
 
 # karakter sinifi
 class Character:
     """
     Karakter sinifi, oyuncu ve dusmanlarin ozelliklerini ve davranislarini tanimlar.
     """
-
     def __init__(self, x, y, image, speed):
         """
         Karakter sinifinin yapici metodu.
@@ -103,8 +99,16 @@ class Character:
             dx (int): x eksenindeki hareket yonu (-1: sol, 1: sag).
             dy (int): y eksenindeki hareket yonu (-1: yukari, 1: asagi).
         """
-        self.x += dx * self.speed  # x koordinatini guncelle
-        self.y += dy * self.speed  # y koordinatini guncelle
+        # Oyuncunun hareket alanını sınırlandır
+        new_x = self.x + dx * self.speed
+        new_y = self.y + dy * self.speed
+
+        # Ekran sınırlarını kontrol et
+        if 0 <= new_x <= WIDTH - TILE_SIZE:
+            self.x = new_x
+        if 0 <= new_y <= HEIGHT - TILE_SIZE:
+            self.y = new_y
+
         if dx > 0:
             self.direction = "right"  # saga hareket ediyor
         elif dx < 0:
@@ -128,7 +132,7 @@ class Character:
 
 # oyuncu ve dusmanlar
 player = Character(400, 300, "player", PLAYER_SPEED)  # oyuncu karakteri olustur
-enemies = [Character(randint(0, WIDTH), randint(0, HEIGHT), "enemy", ENEMY_SPEED) for _ in range(NUM_ENEMIES)]  # Dusman karakterleri olustur
+enemies = [Character(randint(0, WIDTH - TILE_SIZE), randint(0, HEIGHT - TILE_SIZE), "enemy", ENEMY_SPEED) for _ in range(NUM_ENEMIES)]  # Dusman karakterleri olustur
 
 # carpisma kontrolu
 def check_collision(player, enemy):
@@ -156,7 +160,7 @@ def reset_game():
     score = 0  # skoru sifirla
     start_time = time.time()  # zamanlayiciyi sifirla
     player = Character(400, 300, "player", PLAYER_SPEED)  # Oyuncuyu yeniden olustur
-    enemies = [Character(randint(0, WIDTH), randint(0, HEIGHT), "enemy", ENEMY_SPEED) for _ in range(NUM_ENEMIES)]  # duusmanlari yeniden olustur
+    enemies = [Character(randint(0, WIDTH - TILE_SIZE), randint(0, HEIGHT - TILE_SIZE), "enemy", ENEMY_SPEED) for _ in range(NUM_ENEMIES)]  # duusmanlari yeniden olustur
 
 # oyun dongusu
 def update():
@@ -199,7 +203,15 @@ def draw():
 
     if show_welcome:
         screen.blit("background", (0, 0))  # arka plan gorseli
+        # Oyun ismini ekrana yaz
+        screen.draw.text(
+            "Tehlikeli Hareketler",  # oyun ismi
+            center=(WIDTH // 2, HEIGHT // 2 - 150),  # metni ekranın ustune yerlestir
+            fontsize=60,  # yazi boyutu
+            color="white"  # yazi rengi
+        )
         start_button.draw()  # basla butonunu ciz
+        sound_button.draw()  # ses butonunu ciz
     elif game_over:
         screen.blit("background", (0, 0))  # arka plan gorseli
         screen.draw.text(
@@ -216,6 +228,7 @@ def draw():
         )
         restart_button.draw()  # yeniden basla butonunu ciz
         exit_button.draw()  # cikis butonunu ciz
+        sound_button.draw()  # ses butonunu ciz
     else:
         screen.blit("background", (0, 0))  # arka plan gorseli
         player.draw()  # oyuncuyu ciz
@@ -227,26 +240,52 @@ def draw():
             fontsize=30,
             color="white"
         )
+        sound_button.draw()  # ses butonunu ciz
 
-# fare tiklamasini kontrol et
 def on_mouse_down(pos):
     """
-    Fare tiklamasini isler.
+    fare tiklamasini isler.
 
-    Args:
-        pos (tuple): Farenin (x, y) koordinatlari.
+    args:
+        pos (tuple): farenin (x, y) koordinatlari.
     """
-    global show_welcome, game_over
+    global show_welcome, game_over, music_on
 
     if show_welcome:
         if start_button.is_clicked(pos):  # basla butonuna tiklandi mi?
             show_welcome = False  # hosgeldin ekranini kapat
             sounds.start.play()  # oyun baslama sesi
+        elif sound_button.is_clicked(pos):  # ses butonuna tiklandi mi?
+            music_on = not music_on  # muzik durumunu tersine cevir
+            if music_on:
+                music.unpause()  # muzigi devam ettir
+                sound_button.text = "Ses: Açık"  # buton metnini guncelle
+            else:
+                music.pause()  # muzigi duraklat
+                sound_button.text = "Ses: Kapalı"  # buton metnini guncelle
     elif game_over:
         if restart_button.is_clicked(pos):  # yeniden basla butonuna tiklandi mi?
             reset_game()  # oyunu sifirla
         elif exit_button.is_clicked(pos):  # cikis butonuna tiklandi mi?
             quit()  # oyunu kapat
+        elif sound_button.is_clicked(pos):  # ses butonuna tiklandi mi?
+            music_on = not music_on  # muzik durumunu tersine cevir
+            if music_on:
+                music.unpause()  
+                sound_button.text = "Ses: Açık"  # buton metnini guncelle
+            else:
+                music.pause()  
+                sound_button.text = "Ses: Kapalı"  # buton metnini guncelle
+    else:
+        # oyun sirasinda ses butonuna tiklandi mi?
+        if sound_button.is_clicked(pos):  # ses butonuna tiklandi mi?
+            music_on = not music_on  
+            if music_on:
+                music.unpause()  
+                sound_button.text = "Ses: Açık"  # buton metnini guncelle
+            else:
+                music.pause()  
+                sound_button.text = "Ses: Kapalı"  # buton metnini guncelle
 
 # fare hareketini kontrol et
 def on_mouse_move(pos):
@@ -257,10 +296,18 @@ def on_mouse_move(pos):
         pos (tuple): Farenin (x, y) koordinatlari.
     """
     if show_welcome:
-        start_button.check_hover(pos)  # basla butonunun uzerine gelindi mi?
+        start_button.check_hover(pos)  # basla butonunun uzerine gelince renk degistir
+        sound_button.check_hover(pos)  # ses butonunun uzerine gelince renk degistir
     elif game_over:
-        restart_button.check_hover(pos)  # yeniden basla butonunun uzerine gelindi mi?
-        exit_button.check_hover(pos)  # cikis butonunun uzerine gelindi mi?
+        restart_button.check_hover(pos)  # yeniden basla butonunun uzerine gelince renk degistir
+        exit_button.check_hover(pos)  # cikis butonunun uzerine gelince renk degistir
+        sound_button.check_hover(pos)  # ses butonunun uzerine gelince renk degistir
+    else:
+        sound_button.check_hover(pos)  # ses butonunun uzerine gelince renk degistir
+
+# Arka plan müziği
+music.play("background_music")  # arka plan muzigi
+music.set_volume(0.5)  # muzik ses seviyesi
 
 # oyunu baslat
 pgzrun.go()
