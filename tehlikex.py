@@ -1,5 +1,5 @@
 import pgzrun  # Pygame Zero kutuphanesini ice aktar
-from random import randint  # Rastgele sayi uretmek icin randint fonksiyonunu ice aktar
+from random import randint, choice  # Rastgele sayi uretmek icin randint ve choice fonksiyonlarini ice aktar
 from pygame import Rect  # dikdortgen olusturmak icin Rect sinifini ice aktar
 import time  # Zaman islemleri icin time modulunu ice aktar
 
@@ -9,7 +9,7 @@ HEIGHT = 600  # oyun penceresinin yuksekligi
 TILE_SIZE = 40  # karakterlerin boyutu (kare seklinde)
 PLAYER_SPEED = 3  # oyuncunun hareket hizi
 ENEMY_SPEED = 2  # dusmanlarin hareket hizi
-NUM_ENEMIES = 5  # dusman sayisi
+NUM_ENEMIES = 2  # dusman sayisi
 
 # dusman sayisini ve hiz ifadelerini 
 # ayarlamalı olarak baslangic ekraninda verebiliriz
@@ -23,7 +23,7 @@ show_welcome = True  # hosgeldin ekranini gosterir
 game_over_time = 0  # Game Over oldugunda zamani kaydetmek icin tanimli
 score = 0  # oyuncunun skoru
 start_time = time.time()  # oyunun baslangic zamani
-music_on = True  # müzik açık mı? kontrol
+music_on = True  # muzik acık mı? kontrol
 
 # Buton sinifi
 class Button:
@@ -130,9 +130,37 @@ class Character:
         """
         screen.blit(self.image, (self.x, self.y))  # gorseli ekrana ciz
 
+# Düşman sinifi
+class Enemy(Character):
+    """
+    Düşman sinifi, düşmanların özelliklerini ve davranışlarını tanımlar.
+    """
+    def __init__(self, x, y, image, speed):
+        """
+        Düşman sinifinin yapici metodu.
+        """
+        super().__init__(x, y, image, speed)
+        self.dx = choice([-1, 1])  # Rastgele başlangıç yönü (x)
+        self.dy = choice([-1, 1])  # Rastgele başlangıç yönü (y)
+
+    def update(self):
+        """
+        Düşmanın güncellenmesini sağlar.
+        """
+        # Ekran sınırlarını kontrol et ve yön değiştir
+        if self.x <= 0 or self.x >= WIDTH - TILE_SIZE:
+            self.dx *= -1
+        if self.y <= 0 or self.y >= HEIGHT - TILE_SIZE:
+            self.dy *= -1
+
+        # Hareket et
+        self.x += self.dx * self.speed
+        self.y += self.dy * self.speed
+
 # oyuncu ve dusmanlar
 player = Character(400, 300, "player", PLAYER_SPEED)  # oyuncu karakteri olustur
-enemies = [Character(randint(0, WIDTH - TILE_SIZE), randint(0, HEIGHT - TILE_SIZE), "enemy", ENEMY_SPEED) for _ in range(NUM_ENEMIES)]  # Dusman karakterleri olustur
+# listcomprhensions kullandik okunabilirlik biraz dustu
+enemies = [Enemy(randint(0, WIDTH - TILE_SIZE), randint(0, HEIGHT - TILE_SIZE), "enemy", ENEMY_SPEED) for _ in range(NUM_ENEMIES)]  # Dusman karakterleri olustur
 
 # carpisma kontrolu
 def check_collision(player, enemy):
@@ -160,7 +188,7 @@ def reset_game():
     score = 0  # skoru sifirla
     start_time = time.time()  # zamanlayiciyi sifirla
     player = Character(400, 300, "player", PLAYER_SPEED)  # Oyuncuyu yeniden olustur
-    enemies = [Character(randint(0, WIDTH - TILE_SIZE), randint(0, HEIGHT - TILE_SIZE), "enemy", ENEMY_SPEED) for _ in range(NUM_ENEMIES)]  # duusmanlari yeniden olustur
+    enemies = [Enemy(randint(0, WIDTH - TILE_SIZE), randint(0, HEIGHT - TILE_SIZE), "enemy", ENEMY_SPEED) for _ in range(NUM_ENEMIES)]  # duusmanlari yeniden olustur
 
 # oyun dongusu
 def update():
@@ -185,7 +213,7 @@ def update():
         player.move(0, 1)  # oyuncuyu asagi hareket ettir
 
     for enemy in enemies:
-        enemy.move(randint(-1, 1), randint(-1, 1))  # Dusmani rastgele hareket ettir
+        enemy.update()  # Düşmanın güncellenmesi
 
         if check_collision(player, enemy):
             game_over = True  # oyunu bitir
@@ -242,6 +270,7 @@ def draw():
         )
         sound_button.draw()  # ses butonunu ciz
 
+# Fare tiklamasini kontrol et
 def on_mouse_down(pos):
     """
     fare tiklamasini isler.
@@ -252,10 +281,10 @@ def on_mouse_down(pos):
     global show_welcome, game_over, music_on
 
     if show_welcome:
-        if start_button.is_clicked(pos):  # basla butonuna tiklandi mi?
+        if start_button.is_clicked(pos):  # basla butonuna tiklandiysa
             show_welcome = False  # hosgeldin ekranini kapat
             sounds.start.play()  # oyun baslama sesi
-        elif sound_button.is_clicked(pos):  # ses butonuna tiklandi mi?
+        elif sound_button.is_clicked(pos):  # ses butonuna tiklandiysa
             music_on = not music_on  # muzik durumunu tersine cevir
             if music_on:
                 music.unpause()  # muzigi devam ettir
@@ -264,27 +293,27 @@ def on_mouse_down(pos):
                 music.pause()  # muzigi duraklat
                 sound_button.text = "Ses: Kapalı"  # buton metnini guncelle
     elif game_over:
-        if restart_button.is_clicked(pos):  # yeniden basla butonuna tiklandi mi?
+        if restart_button.is_clicked(pos):  # yeniden basla butonuna tiklandiysa
             reset_game()  # oyunu sifirla
-        elif exit_button.is_clicked(pos):  # cikis butonuna tiklandi mi?
+        elif exit_button.is_clicked(pos):  # cikis butonuna tiklandiysa
             quit()  # oyunu kapat
-        elif sound_button.is_clicked(pos):  # ses butonuna tiklandi mi?
+        elif sound_button.is_clicked(pos):  # ses butonuna tiklandiysa
             music_on = not music_on  # muzik durumunu tersine cevir
             if music_on:
-                music.unpause()  
+                music.unpause()  # muzigi devam ettir
                 sound_button.text = "Ses: Açık"  # buton metnini guncelle
             else:
-                music.pause()  
+                music.pause()  # muzigi duraklat
                 sound_button.text = "Ses: Kapalı"  # buton metnini guncelle
     else:
         # oyun sirasinda ses butonuna tiklandi mi?
-        if sound_button.is_clicked(pos):  # ses butonuna tiklandi mi?
-            music_on = not music_on  
+        if sound_button.is_clicked(pos):  # ses butonuna tiklandiysa
+            music_on = not music_on  # muzik durumunu tersine cevir
             if music_on:
-                music.unpause()  
+                music.unpause()  # muzigi devam ettir
                 sound_button.text = "Ses: Açık"  # buton metnini guncelle
             else:
-                music.pause()  
+                music.pause()  # muzigi duraklat
                 sound_button.text = "Ses: Kapalı"  # buton metnini guncelle
 
 # fare hareketini kontrol et
